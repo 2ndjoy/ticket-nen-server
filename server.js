@@ -44,6 +44,9 @@ app.use("/api/events", require("./routes/events"));
 // Add after other app.use() lines
 app.use("/api/bookings", require("./routes/bookings"));
 
+const promoteEventsRoute = require('./routes/promoteevents');
+app.use('/api/promoteevents', promoteEventsRoute);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
