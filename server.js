@@ -45,7 +45,7 @@ app.use("/api/events", require("./routes/events"));
 app.use("/api/bookings", require("./routes/bookings"));
 
 const promoteEventsRoute = require('./routes/promoteevents');
-app.use('/api/promoteevents', promoteEventsRoute);
+app.use('/api/events', promoteEventsRoute);
 
 
 const PORT = process.env.PORT || 5000;
