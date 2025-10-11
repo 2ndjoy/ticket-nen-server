@@ -1,23 +1,31 @@
+// models/Event.js
 const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
-  title: String,
+  title: { type: String, required: true },
   subtitle: String,
   date: String,
   time: String,
+
+  // Optional "from price"
   price: String,
-  // NEW: VIP & Regular ticket prices
-  vipTickets: String,
-  vipPrice: String,
-  regularTickets: String,
-  regularPrice: String,
+
+  // ✅ Numeric tickets & prices
+  vipTickets: { type: Number, default: 0 },
+  vipPrice: { type: Number, default: 0 },
+
+  regularTickets: { type: Number, default: 0 },
+  regularPrice: { type: Number, default: 0 },
+
   category: String,
   location: String,
-  status: String,
+  status: { type: String, default: "Draft" },
   image: String,
-  // NEW: Description
+
   description: String,
 
-});
+  attendees: { type: Number, default: 0 },
+  rating: Number,
+}, { timestamps: true });
 
 module.exports = mongoose.model("Event", eventSchema);

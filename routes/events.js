@@ -6,7 +6,7 @@ const Event = require("../models/Event");
 // GET all events
 router.get("/", async (req, res) => {
   try {
-    const events = await Event.find();
+    const events = await Event.find().sort({ createdAt: -1 });
     res.json(events);
   } catch (err) {
     console.error(err);
@@ -26,11 +26,16 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-
 // POST a new event
 router.post("/", async (req, res) => {
   try {
-    const event = new Event(req.body);
+    // Coerce potential string inputs to numbers
+    const cleaned = { ...req.body };
+    ["vipTickets", "regularTickets", "vipPrice", "regularPrice"].forEach((k) => {
+      if (cleaned[k] !== undefined) cleaned[k] = Number(cleaned[k]) || 0;
+    });
+
+    const event = new Event(cleaned);
     await event.save();
     res.status(201).json(event);
   } catch (err) {
