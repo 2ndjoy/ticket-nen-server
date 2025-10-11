@@ -20,15 +20,5 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/promoteevents — get all events
-router.get('/', async (req, res) => {
-  try {
-    const events = await PromoteEvent.find().sort({ createdAt: -1 });
-    res.json(events);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error while fetching events' });
-  }
-});
 
 module.exports = router;

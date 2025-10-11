@@ -47,6 +47,11 @@ app.use("/api/bookings", require("./routes/bookings"));
 const promoteEventsRoute = require('./routes/promoteevents');
 app.use('/api/events', promoteEventsRoute);
 
+const organizersRoute = require("./routes/organizers");
+app.use("/api/organizers", organizersRoute);
+
+const contactsRoute = require("./routes/contacts");
+app.use("/api/contacts", contactsRoute);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
