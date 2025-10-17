@@ -29,16 +29,30 @@ app.use(express.urlencoded({ extended: true }));
 
 /* =========================
    Firebase Admin Init
+<<<<<<< HEAD
+=======
+   - Prefers GOOGLE_APPLICATION_CREDENTIALS
+   - Falls back to ./serviceAccountKey.json if present
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 ========================= */
 (() => {
   if (admin.apps.length) return;
 
   try {
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+<<<<<<< HEAD
+=======
+      // Using Application Default Credentials (recommended in prod)
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
       admin.initializeApp();
       console.log("✅ Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS");
       return;
     }
+<<<<<<< HEAD
+=======
+
+    // Fallback to local service account key file
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
     const keyPath = path.resolve(__dirname, "serviceAccountKey.json");
     if (fs.existsSync(keyPath)) {
       const serviceAccount = require(keyPath);
@@ -48,7 +62,15 @@ app.use(express.urlencoded({ extended: true }));
       console.log("✅ Firebase Admin initialized via serviceAccountKey.json");
       return;
     }
+<<<<<<< HEAD
     console.warn("⚠️ Firebase Admin not initialized. Set GOOGLE_APPLICATION_CREDENTIALS or add serviceAccountKey.json");
+=======
+
+    console.warn(
+      "⚠️ Firebase Admin not initialized (no GOOGLE_APPLICATION_CREDENTIALS and no serviceAccountKey.json). " +
+        "If you need auth, set one of them."
+    );
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
   } catch (err) {
     console.error("❌ Firebase Admin init error:", err);
   }
@@ -59,6 +81,11 @@ app.use(express.urlencoded({ extended: true }));
 ========================= */
 mongoose.set("strictQuery", true);
 
+<<<<<<< HEAD
+=======
+// If you want Mongoose to build indexes in prod (e.g., the unique index on Booking):
+// Set MONGOOSE_AUTO_INDEX=true in your .env (default false in production).
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 const shouldAutoIndex =
   String(process.env.MONGOOSE_AUTO_INDEX || "").toLowerCase() === "true";
 
@@ -67,25 +94,43 @@ const MONGODB_URI =
 
 mongoose
   .connect(MONGODB_URI, {
+<<<<<<< HEAD
     autoIndex: shouldAutoIndex,
+=======
+    autoIndex: shouldAutoIndex, // default false in prod
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
   })
   .then(async () => {
     console.log("✅ MongoDB connected");
 
+<<<<<<< HEAD
     // Ensure models are registered
     require("./models/Event");
     require("./models/Booking");
     require("./models/User");
     require("./models/Organizer");
+=======
+    // Ensure models are registered before potential index builds
+    // (so unique index on bookings gets created if autoIndex=true)
+    require("./models/Event");
+    require("./models/Booking");
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 
     if (shouldAutoIndex) {
       console.log("ℹ️  Mongoose autoIndex is ENABLED. Building indexes if needed...");
       try {
+<<<<<<< HEAD
         await Promise.all([
           mongoose.model("Event").syncIndexes(),
           mongoose.model("Booking").syncIndexes(),
           mongoose.model("User").syncIndexes(),
           mongoose.model("Organizer").syncIndexes(),
+=======
+        // Build indexes explicitly (optional)
+        await Promise.all([
+          mongoose.model("Event").syncIndexes(),
+          mongoose.model("Booking").syncIndexes(),
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
         ]);
         console.log("✅ Index sync complete");
       } catch (e) {
@@ -116,12 +161,19 @@ app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 /* =========================
    API Routes
 ========================= */
+<<<<<<< HEAD
 const eventsRouter = require("./routes/events");
 const bookingsRouter = require("./routes/bookings");
+=======
+// Your route files (make sure these files exist)
+const eventsRouter = require("./routes/events");
+const bookingsRouter = require("./routes/bookings"); // contains its own Firebase token verification
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 const promoteEventsRoute = require("./routes/promoteEvents");
 const organizersRoute = require("./routes/organizers");
 const contactsRoute = require("./routes/contacts");
 
+<<<<<<< HEAD
 // NEW: admin routes
 const adminRouter = require("./routes/admin");
 
@@ -134,12 +186,25 @@ app.use("/api/contacts", contactsRoute);
 app.use("/api/admin", adminRouter);
 
 // Organizer extras you already had:
+=======
+// Mount under /api/*
+app.use("/api/events", eventsRouter);          // GET/POST events, GET /:id
+app.use("/api/bookings", bookingsRouter);      // POST bookings, GET my-bookings
+app.use("/api/events", promoteEventsRoute);    // e.g., /api/events/promote (your existing file)
+app.use("/api/organizers", organizersRoute);
+app.use("/api/contacts", contactsRoute);
+
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 const organizersMyEventsRouter = require("./routes/organizersMyEvents");
 app.use("/api/organizers", organizersMyEventsRouter);
 
 const organizersMetricsRouter = require("./routes/organizersMetrics");
 app.use("/api/organizers", organizersMetricsRouter);
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 /* =========================
    404 + Error Handlers
 ========================= */
@@ -150,6 +215,11 @@ app.use((req, res, next) => {
   return res.status(404).send("Not found");
 });
 
+<<<<<<< HEAD
+=======
+// Centralized error handler
+// If any route calls next(err), it will end here.
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) return;

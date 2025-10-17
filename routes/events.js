@@ -44,6 +44,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 
 // DELETE /api/events/:id
 router.delete("/:id", async (req, res) => {
@@ -63,4 +64,6 @@ router.delete("/:id", async (req, res) => {
 });
 
 
+=======
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 module.exports = router;

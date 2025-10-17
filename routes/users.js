@@ -38,6 +38,7 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 
 
 // DELETE /api/admin/users/:id
@@ -64,4 +65,6 @@ router.delete("/:id", async (req, res) => {
 });
 
 
+=======
+>>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 module.exports = router;
