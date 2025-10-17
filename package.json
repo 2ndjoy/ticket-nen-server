@@ -1,0 +1,25 @@
+{
+  "name": "ticket-nen-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "mongodb": "^6.17.0",
+    "mongoose": "^8.17.2",
+    "nodemailer": "^7.0.9",
+    "pdfkit": "^0.17.2",
+    "qrcode": "^1.5.4"
+  }
+}
