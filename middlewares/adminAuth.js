@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // routes/adminSimple.js
 const express = require("express");
 const router = express.Router();
@@ -88,7 +87,7 @@ router.get("/bookings", async (req, res) => {
 });
 
 module.exports = router;
-=======
+
 // middleware/adminAuth.js
 const admin = require("firebase-admin");
 const User = require("../models/User");
@@ -132,4 +131,3 @@ async function requireAdmin(req, res, next) {
 }
 
 module.exports = { verifyFirebaseToken, requireAdmin };
->>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd

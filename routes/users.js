@@ -1,9 +1,25 @@
+// routes/users.js
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
+
 const User = require("../models/User");
 const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
 
-// 🔐 Protect routes
+/**
+ * Helper: require admin claim
+ */
+function requireAdmin(req, res, next) {
+  const isAdmin = !!(req.firebaseClaims && (req.firebaseClaims.admin || req.firebaseClaims.role === "admin"));
+  if (!isAdmin) return res.status(403).json({ error: "Admin only" });
+  return next();
+}
+
+/**
+ * POST /  (Upsert own profile)
+ * Body: { uid, fullName, email, phoneNumber, imageUrl }
+ * Protected: yes
+ */
 router.post("/", verifyFirebaseToken, async (req, res) => {
   const { uid, fullName, email, phoneNumber, imageUrl } = req.body;
 
@@ -25,7 +41,10 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// 🔐 GET profile
+/**
+ * GET /me  (Get own profile)
+ * Protected: yes
+ */
 router.get("/me", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.firebaseUid;
@@ -38,14 +57,14 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-
-
-// DELETE /api/admin/users/:id
-router.delete("/:id", async (req, res) => {
+/**
+ * DELETE /:id  (Admin deletes a user by Mongo _id)
+ * Protected: admin only
+ * NOTE: If this router is mounted at /api/admin/users, this path becomes /api/admin/users/:id
+ */
+router.delete("/:id", verifyFirebaseToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
-  // Option A: strict ObjectId check
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid user id" });
   }
@@ -57,14 +76,10 @@ router.delete("/:id", async (req, res) => {
     }
     return res.status(204).end();
   } catch (err) {
-    console.error(err);
-    // If you prefer not to import mongoose above, you can catch CastError:
-    // if (err?.name === "CastError") return res.status(400).json({ error: "Invalid user id" });
+    console.error("DELETE /users/:id error:", err);
+    // If you didn't import mongoose, you'd catch CastError here instead.
     return res.status(500).json({ error: "Server error" });
   }
 });
 
-
-=======
->>>>>>> 3acdbfa59d15ffe9884ccb3cfd6864ac94eb76fd
 module.exports = router;
