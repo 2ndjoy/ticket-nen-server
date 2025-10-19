@@ -122,9 +122,7 @@ app.get("/", (_req, res) => {
 
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
-/* =========================
-   API Routes
-========================= */
+
 const eventsRouter = require("./routes/events");
 const bookingsRouter = require("./routes/bookings");
 const promoteEventsRoute = require("./routes/promoteEvents");
@@ -132,7 +130,9 @@ const organizersRoute = require("./routes/organizers");
 const contactsRoute = require("./routes/contacts");
 const adminRouter = require("./routes/admin"); // if folder, ensure routes/admin/index.js exports a router
 
-// Mount under /api/*
+const usersRouter = require("./routes/users");
+
+app.use("/api/users", usersRouter);  
 app.use("/api/events", eventsRouter);          // GET/POST events, GET /:id
 app.use("/api/bookings", bookingsRouter);      // POST bookings, GET my-bookings
 app.use("/api/events", promoteEventsRoute);    // e.g., /api/events/promote
