@@ -3,10 +3,9 @@ const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 const dayjs = require("dayjs");
 
-/** ASCII-safe money formatter (works with default Helvetica) */
+/** ASCII-safe money formatter (Helvetica-safe) */
 function moneyBDT(n) {
   const num = Number(n || 0);
-  // ASCII digits + thousands separators; avoid Bengali digits / special symbol
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
@@ -14,20 +13,43 @@ function moneyBDT(n) {
   return `BDT ${formatted}`;
 }
 
-/** Write a muted label and bold value block */
-function labelValue(doc, { label, value, x, y, w, labelColor = "#6B7280", valueColor = "#111827" }) {
+/** Write a muted label and bold value block (matches web Info component) */
+function labelValue(
+  doc,
+  {
+    label,
+    value,
+    x,
+    y,
+    w,
+    labelColor = "#6B7280",
+    valueColor = "#111827",
+    mono = false,
+    accent = false,
+  }
+) {
   const labelFontSize = 9;
   const valueFontSize = 11;
   const gap = 4;
 
-  doc.font("Helvetica").fontSize(labelFontSize).fillColor(labelColor)
-    .text(label.toUpperCase(), x, y, { width: w });
+  doc.save();
+  doc.font("Helvetica").fontSize(labelFontSize).fillColor(labelColor).text(
+    String(label || "").toUpperCase(),
+    x,
+    y,
+    { width: w }
+  );
 
   const labelH = doc.currentLineHeight();
-  doc.font("Helvetica-Bold").fontSize(valueFontSize).fillColor(valueColor)
+  doc
+    .font(mono ? "Helvetica" : "Helvetica-Bold")
+    .fontSize(valueFontSize)
+    .fillColor(accent ? "#0b7253" : valueColor)
     .text(String(value ?? "-"), x, y + labelH + gap, { width: w });
+  const valH = doc.currentLineHeight();
+  doc.restore();
 
-  return labelH + gap + doc.currentLineHeight() + 8;
+  return labelH + gap + valH + 8;
 }
 
 async function buildTicketPdf({ event, booking, qrPayload }) {
@@ -36,57 +58,84 @@ async function buildTicketPdf({ event, booking, qrPayload }) {
   doc.on("data", (c) => chunks.push(c));
   const done = new Promise((res) => doc.on("end", () => res(Buffer.concat(chunks))));
 
-  const BRAND = "#0b7253";
-  const ACCENT = "#ef8bb7";
-  const BG_GRAD_TOP = "#F1FFF8";
+  // Shared palette (matches web)
+  const BRAND = "#0b7253"; // green
+  const ACCENT = "#ef8bb7"; // pink
   const CARD_BG = "#FFFFFF";
   const TEXT = "#0F172A";
   const MUTED = "#64748B";
   const HAIRLINE = "#E2E8F0";
+  const PANEL_BG = "#F8FAFC";
 
-  // Header bar + background
-  doc.rect(0, 0, doc.page.width, 80).fill(BRAND);
-  doc.rect(0, 80, doc.page.width, doc.page.height - 80).fill(BG_GRAD_TOP);
+  // Header gradient bar (brand -> accent)
+  const headerH = 110;
+  const grad = doc.linearGradient(0, 0, doc.page.width, headerH);
+  grad.stop(0, BRAND).stop(1, ACCENT);
+  doc.rect(0, 0, doc.page.width, headerH).fill(grad);
 
   // Header text
-  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(26)
-    .text("YOUR EVENT TICKET", 36, 28, { align: "left" });
-  doc.font("Helvetica").fontSize(10).fillColor("#DAF5E7")
-    .text("Please keep a copy on your phone", 36, 56);
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(24).text("EVENT TICKET", 36, 28);
+  doc.font("Helvetica").fontSize(10).fillColor("#F1FAF5").text("Please keep a digital copy as backup", 36, 60);
 
-  // Card
-  const cardX = 36, cardY = 112, cardW = doc.page.width - 72, cardH = 440, r = 16;
-  doc.save()
+  // Card with subtle shadow
+  const cardX = 36,
+    cardY = headerH - 18,
+    cardW = doc.page.width - 72,
+    cardH = 480,
+    r = 16;
+  doc
+    .save()
     .roundedRect(cardX + 3, cardY + 3, cardW, cardH, r)
-    .fillOpacity(0.06).fill("#000000")
+    .fillOpacity(0.06)
+    .fill("#000000")
     .restore();
+
+  // Card background (solid white to match web inner card)
   doc.roundedRect(cardX, cardY, cardW, cardH, r).fill(CARD_BG);
+
+  // Decorative soft blobs
+  doc
+    .save()
+    .fillColor("#000000")
+    .fillOpacity(0.08)
+    .circle(cardX + cardW - 60, cardY + 20, 34)
+    .fill()
+    .circle(cardX + 40, cardY + cardH - 40, 46)
+    .fill()
+    .restore();
 
   // Pill
   const pill = "EVENT TICKET";
-  const pillPadX = 12, pillPadY = 6;
-  const pillW = doc.widthOfString(pill, { font: "Helvetica-Bold", size: 10 }) + pillPadX * 2;
-  doc.save()
-    .roundedRect(cardX + 24, cardY - 14, pillW, 28, 99)
+  const pillPadX = 12,
+    pillPadY = 6;
+  doc.font("Helvetica-Bold").fontSize(10);
+  const pillW = doc.widthOfString(pill) + pillPadX * 2;
+  doc
+    .save()
+    .roundedRect(cardX + 24, cardY - 16, pillW, 28, 99)
     .fill(ACCENT)
-    .fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(10)
-    .text(pill, cardX + 24 + pillPadX, cardY - 14 + pillPadY)
+    .fillColor("#FFFFFF")
+    .text(pill, cardX + 24 + pillPadX, cardY - 16 + pillPadY)
     .restore();
 
-  // Content area
+  // Inner padding & columns
   const pad = 28;
   const cx = cardX + pad;
   let cy = cardY + pad;
   const innerW = cardW - pad * 2;
 
   // Title & subtitle
-  doc.font("Helvetica-Bold").fontSize(20).fillColor(TEXT)
-    .text(event?.title || "Event", cx, cy, { width: innerW });
+  doc.font("Helvetica-Bold").fontSize(20).fillColor(TEXT).text(event?.title || "Event", cx, cy, {
+    width: innerW,
+    align: "center",
+  });
   cy += doc.currentLineHeight() + 6;
 
   if (event?.subtitle) {
-    doc.font("Helvetica").fontSize(11).fillColor(MUTED)
-      .text(event.subtitle, cx, cy, { width: innerW });
+    doc.font("Helvetica").fontSize(11).fillColor(MUTED).text(event.subtitle, cx, cy, {
+      width: innerW,
+      align: "center",
+    });
     cy += doc.currentLineHeight() + 10;
   }
 
@@ -94,6 +143,7 @@ async function buildTicketPdf({ event, booking, qrPayload }) {
   doc.moveTo(cx, cy).lineTo(cx + innerW, cy).lineWidth(1).strokeColor(HAIRLINE).stroke();
   cy += 16;
 
+  // Normalized strings
   const dateStr = dayjs(event?.date).isValid()
     ? dayjs(event.date).format("dddd, MMMM D, YYYY")
     : String(event?.date || "");
@@ -105,58 +155,130 @@ async function buildTicketPdf({ event, booking, qrPayload }) {
   const leftW = Math.floor((innerW - gutter) * 0.6);
   const rightW = innerW - gutter - leftW;
 
-  // Left column
+  // LEFT column
   let rowH = [];
-  rowH.push(labelValue(doc, { label: "Date", value: dateStr, x: cx, y: cy, w: Math.floor(leftW * 0.55) }));
-  rowH.push(labelValue(doc, { label: "Time", value: timeStr, x: cx + Math.floor(leftW * 0.6), y: cy, w: Math.floor(leftW * 0.4) }));
+  rowH.push(
+    labelValue(doc, { label: "Date", value: dateStr, x: cx, y: cy, w: Math.floor(leftW * 0.55) })
+  );
+  rowH.push(
+    labelValue(doc, {
+      label: "Time",
+      value: timeStr,
+      x: cx + Math.floor(leftW * 0.6),
+      y: cy,
+      w: Math.floor(leftW * 0.4),
+    })
+  );
   cy += Math.max(...rowH);
 
   cy += 2;
   cy += labelValue(doc, { label: "Venue", value: venueStr, x: cx, y: cy, w: leftW });
 
   rowH = [];
-  rowH.push(labelValue(doc, { label: "Attendee", value: booking?.name || "-", x: cx, y: cy, w: Math.floor(leftW * 0.5) - 6 }));
-  rowH.push(labelValue(doc, { label: "Phone", value: booking?.phoneNumber || "-", x: cx + Math.floor(leftW * 0.5) + 6, y: cy, w: Math.floor(leftW * 0.5) - 6 }));
+  rowH.push(
+    labelValue(doc, {
+      label: "Attendee",
+      value: booking?.name || "-",
+      x: cx,
+      y: cy,
+      w: Math.floor(leftW * 0.5) - 6,
+    })
+  );
+  rowH.push(
+    labelValue(doc, {
+      label: "Phone",
+      value: booking?.phoneNumber || "-",
+      x: cx + Math.floor(leftW * 0.5) + 6,
+      y: cy,
+      w: Math.floor(leftW * 0.5) - 6,
+    })
+  );
   cy += Math.max(...rowH);
 
   cy += labelValue(doc, { label: "Email", value: booking?.email || "-", x: cx, y: cy, w: leftW });
 
   rowH = [];
-  rowH.push(labelValue(doc, { label: "Ticket Type", value: typeStr, x: cx, y: cy, w: Math.floor(leftW / 3) - 8 }));
-  rowH.push(labelValue(doc, { label: "Quantity", value: booking?.quantity || 1, x: cx + Math.floor(leftW / 3) + 8, y: cy, w: Math.floor(leftW / 3) - 8 }));
-  // ↓↓↓ use ASCII-safe money here
-  rowH.push(labelValue(doc, { label: "Amount Paid", value: moneyBDT(booking?.amount), x: cx + 2 * Math.floor(leftW / 3) + 16, y: cy, w: Math.floor(leftW / 3) - 16 }));
+  rowH.push(
+    labelValue(doc, {
+      label: "Ticket Type",
+      value: typeStr,
+      x: cx,
+      y: cy,
+      w: Math.floor(leftW / 3) - 8,
+    })
+  );
+  rowH.push(
+    labelValue(doc, {
+      label: "Quantity",
+      value: booking?.quantity || 1,
+      x: cx + Math.floor(leftW / 3) + 8,
+      y: cy,
+      w: Math.floor(leftW / 3) - 8,
+    })
+  );
+  rowH.push(
+    labelValue(doc, {
+      label: "Amount Paid",
+      value: moneyBDT(booking?.amount),
+      x: cx + 2 * Math.floor(leftW / 3) + 16,
+      y: cy,
+      w: Math.floor(leftW / 3) - 16,
+    })
+  );
   cy += Math.max(...rowH);
 
-  cy += labelValue(doc, { label: "Booking ID", value: booking?._id, x: cx, y: cy, w: leftW });
+  cy += labelValue(doc, { label: "Booking ID", value: booking?._id, x: cx, y: cy, w: leftW, mono: true });
+  cy += labelValue(doc, {
+    label: "Ticket ID",
+    value: qrPayload?.ticketId || "-",
+    x: cx,
+    y: cy,
+    w: leftW,
+    mono: true,
+    accent: true,
+  });
 
-  // Right column: QR
+  // RIGHT column: QR panel
   const qrX = cx + leftW + gutter;
   const qrY = cardY + pad;
-  const qrPanelH = 200;
-  doc.roundedRect(qrX, qrY, rightW, qrPanelH, 12).fill("#F8FAFC");
+  const qrPanelH = 220;
+  doc.roundedRect(qrX, qrY, rightW, qrPanelH, 12).fill(PANEL_BG).strokeColor(HAIRLINE).lineWidth(1).stroke();
 
   const qrValue = JSON.stringify(qrPayload || {});
-  const qr = await QRCode.toBuffer(qrValue, { type: "png", errorCorrectionLevel: "H", margin: 1, scale: 8 });
-  const qrSize = 140;
+  const qr = await QRCode.toBuffer(qrValue, {
+    type: "png",
+    errorCorrectionLevel: "H",
+    margin: 1,
+    scale: 8,
+  });
+  const qrSize = 150;
   const imgX = qrX + (rightW - qrSize) / 2;
-  const imgY = qrY + 14;
+  const imgY = qrY + 18;
   doc.image(qr, imgX, imgY, { fit: [qrSize, qrSize] });
 
-  doc.font("Helvetica").fontSize(10).fillColor(MUTED)
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(MUTED)
     .text("Scan to verify", qrX, imgY + qrSize + 10, { width: rightW, align: "center" });
 
   // Footer
   const bottomY = cardY + cardH - 78;
   doc.moveTo(cx, bottomY).lineTo(cx + innerW, bottomY).lineWidth(1).strokeColor(HAIRLINE).stroke();
 
-  doc.font("Helvetica").fontSize(9).fillColor(MUTED)
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor(MUTED)
     .text("Present this ticket at the venue entrance. Keep a digital copy as backup.", cx, bottomY + 12, {
       width: innerW,
       align: "center",
     });
 
-  doc.font("Helvetica-Bold").fontSize(10).fillColor(BRAND)
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .fillColor(BRAND)
     .text(`Generated ${dayjs().format("MMM D, YYYY h:mm A")}`, cx, bottomY + 30, {
       width: innerW,
       align: "right",

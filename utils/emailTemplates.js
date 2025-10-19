@@ -29,7 +29,7 @@ function ticketEmailHtml({ event, booking }) {
     </div>
 
     <p style="margin-top:16px; color:#666;">If you have any questions, just reply to this email.</p>
-    <p style="margin:0; color:#0b7253;"><strong>— EventHub BD</strong></p>
+    <p style="margin:0; color:#0b7253;"><strong>— Ticket Nen BD</strong></p>
   </div>
   `;
 }
